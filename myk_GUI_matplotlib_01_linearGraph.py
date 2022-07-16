@@ -5,8 +5,12 @@ from matplotlib.figure import Figure
 import numpy as np
 
 #===================================
-# 参考
-# test_myk01 ボタンで、グラフ描画
+# test_myk01 ボタンで、直線グラフ描画　
+#
+# 参考 
+#    コード-Github  https://github.com/nickredsox/youtube/tree/master/Arduino_Python_serial/Video2
+#    動画-Youtube https://www.youtube.com/watch?v=KpTfdC5CILY&pp=ugMICgJqYRABGAE%3D
+#
 #===================================
 
 data =[]
