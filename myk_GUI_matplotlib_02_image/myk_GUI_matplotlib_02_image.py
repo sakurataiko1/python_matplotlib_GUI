@@ -93,6 +93,7 @@ class BottomPanel(wx.Panel):
 
     def SetButtonPlot01_image(self, event):
         self.graph.setImage('test.png')
+        cb = event.GetEventObject()
         print("[DEBUG]SetButtonPlot01_graphLinear: %s is clicked" % (cb.GetLabel()))
 
 
