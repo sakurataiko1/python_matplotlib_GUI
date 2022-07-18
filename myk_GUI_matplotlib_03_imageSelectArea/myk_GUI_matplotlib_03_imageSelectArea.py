@@ -26,11 +26,16 @@ class TopPanel(wx.Panel):
     read. The dimensions of these readings are always relative to the original image, so even if the image is scaled up larger
     to fit the panel the measurements will always refer to the original image.'''
 
-    def __init__(self, parent, pathToImage=None):
+    #def __init__(self, parent, pathToImage=None):
+    def __init__(self, parent, in_objMain, pathToImage=None):
+        #↑ 変更： Class TopからBottomに情報受け渡しできるようにするため、Mainを介する。
         ''' Initialise the panel. Setting an initial image is optional.'''
         
         # Initialise the parent
         wx.Panel.__init__(self, parent)
+
+        #Class TopからBottomに情報受け渡しできるようにするため、Mainを介する。
+        self.objMain = in_objMain
 
         # Intitialise the matplotlib figure
         self.figure = plt.figure()
@@ -111,6 +116,10 @@ class TopPanel(wx.Panel):
             self.rect.set_xy((self.x0, self.y0))
             self.canvas.draw()
 
+            #-start- myk TopPanelビューのマウス選択範囲座標を, BottomPanelのGUIのテキストフォームに座標値表示する
+            print("[DEBUG]01 Top - onRelease")
+            self.objMain.func_Main_setGUIBottomText01(self.x0, self.y0, self.x1, self.y1)
+            #-end- myk
 
     def _onMotion(self, event):
         '''Callback to handle the motion event created by the mouse moving over the canvas'''
@@ -153,26 +162,43 @@ class BottomPanel(wx.Panel):
         # GUI配置
         self.graph = top
 
-        labelVal1 = wx.StaticText(self, -1, "value ", pos=(110, 10))
-        self.textboxVal1 = wx.TextCtrl(self, -1, "1", pos=(150, 10))
+        #self.buttonPlot01 = wx.Button(self, -1, "Run Prot", pos=(10, 10))
+        #self.buttonPlot01.Bind(wx.EVT_BUTTON, self.SetButtonPlot01_image)
 
-        self.buttonPlot01 = wx.Button(self, -1, "test_Plot01", pos=(10, 10))
-        self.buttonPlot01.Bind(wx.EVT_BUTTON, self.SetButtonPlot01_image)
+        labelVal1 = wx.StaticText(self, -1, "filepath", pos=(10, 10))
+        self.textboxVal1 = wx.TextCtrl(self, -1, "", pos=(50, 10), size=(200, 20))
+        self.buttonSelect01 = wx.Button(self, -1, "select file", pos=(260, 10), size=(100,20))
+        self.buttonSelect01.Bind(wx.EVT_BUTTON, self.func_ButtonSelect01_clicked)
+
+        # topフォームのイメージビューでマウス選択された座標を表示する
+        labelVal2 = wx.StaticText(self, -1, "view selected xy ", pos=(10, 50), size=(100,20))
+        #self.buttonPlot02 = wx.Button(self, -1, "XY selected View", pos=(110, 50))
+        #self.buttonPlot02.Bind(wx.EVT_BUTTON, self.SetButtonPlot02_getGraphSelect)
+        self.textboxVal2 = wx.TextCtrl(self, -1, "0, 0, 0, 0", pos=(120, 50), size=(200,20))
 
     # 　GUIフォームに紐づけた関数指定
-    def SetButtonPlot01_graphLinear(self, event):
-        val1 = self.textboxVal1.GetValue()  # テキストボックスから値取得
-        self.x = np.arange(0, 3, 0.01)
-        self.y = self.x * int(val1);
-        self.graph.draw(self.x, self.y)
-        self.graph.changeAxes(0, 20)  # 軸固定する。　デフォルト動作で軸は描画グラフ最小・最大数値になってくれるが、グラフ変化をわかりやすくするため軸固定する。
-        cb = event.GetEventObject()
-        print("[DEBUG]SetButtonPlot01_graphLinear: %s is clicked" % (cb.GetLabel()))
+    #def SetButtonPlot01_image(self, event):
+    #    self.graph.setImage('test.png')
+    #    cb = event.GetEventObject()
+    #    print("[DEBUG]SetButtonPlot01_graphLinear: %s is clicked" % (cb.GetLabel()))
 
-    def SetButtonPlot01_image(self, event):
-        self.graph.setImage('test.png')
+    def SetButtonPlot02_getGraphSelect(self, event):
+        tmpstr = "%.2f,.%.2f, %.2f, %.2f" % (self.graph.x0, self.graph.ｙ0, self.graph.x1, self.graph.y1)
+        self.textboxVal2.SetValue(tmpstr)
         cb = event.GetEventObject()
-        print("[DEBUG]SetButtonPlot01_graphLinear: %s is clicked" % (cb.GetLabel()))
+        print("[DEBUG]SetButtonPlot02_getGraphSelect: %s is clicked" % (cb.GetLabel()))
+
+    def func_ButtonSelect01_clicked(self, event):
+        #ファイル選択して
+        dialog = wx.FileDialog(self,"ファイルを選択",wildcard="画像ファイル|*.jpg;*.png|すべての形式|*.*",style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST)
+        if dialog.ShowModal()==wx.ID_OK:
+            path01 = dialog.GetPath()
+            self.textboxVal1.SetValue(path01)
+            self.graph.setImage(path01)
+            #↓テキストファイルを読み込む場合の処理
+            #openfile = open(path,"r",encoding="UTF-8",errors="ignore")
+            #self.textctrl.SetValue(openfile.read())
+            #openfile.close()
 
 
 class Main(wx.Frame):
@@ -180,11 +206,28 @@ class Main(wx.Frame):
         wx.Frame.__init__(self, parent=None, title="GUI matplotlib", size=(600, 600))
 
         splitter = wx.SplitterWindow(self)
-        top = TopPanel(splitter)
+        #top = TopPanel(splitter)
+        top = TopPanel(splitter, self) #変更 Class TopからBottomに情報受け渡しできるようにするため、Mainを介する。
         bottom = BottomPanel(splitter, top)
         splitter.SplitHorizontally(top, bottom)
         splitter.SetMinimumPaneSize(400)
         top.setImage('test_none.jpg')
+
+        #-start- 変更 Class TopからBottomに情報受け渡しできるようにするため、Mainを介する。
+        self.objBottom = bottom
+        self.objTop = top
+        # -end- 変更 Class TopからBottomに情報受け渡しできるようにするため
+
+    def func_Main_test(self):
+        print("[DEBUG]01 Main\n")
+        self.objBottom.textboxVal1.SetValue("test_from_Main")
+
+    def func_Main_setGUIBottomText01(self, x0, y0, x1, y1):
+        # Class:TopPanelのビューでマウス選択された座標を、Class:BottomPanel テキストフォームに表示する。
+        print("[DEBUG]01 Main\n")
+        tmpstr = "%.2f,.%.2f, %.2f, %.2f" % (x0, ｙ0, x1, y1)
+        self.objBottom.textboxVal2.SetValue(tmpstr)
+
 
 # --------------------------------------------------------------------------------------------------------------------
 # DEMO
